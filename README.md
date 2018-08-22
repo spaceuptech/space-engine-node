@@ -1,3 +1,36 @@
+# Client API for Space Cloud
+
+## Installation
+
+```bash
+$ npm install space-engine-node --save
+```
+
+## Quick Start
+
+### Create Engine Instance
+
+```js
+const Engine = require('space-engine-node');
+
+const engine = new Engine('my-engine');
+```
+
+**Note: All instances with same engine name are automatically load balanced.**
+
+### Register the function 
+```js
+engine.registerFunc('my-func', (params, cb) => {
+console.log('Params:', params)
+// Do something
+
+const response = { ack: true, message: 'Function as a Service is Awesome!' }
+cb(response)
+})
+```
+
+**Note: Enable Functions module in Space Cloud, run space-exec and nats server to be able to use it.**
+
 ## Classes
 
 <dl>
