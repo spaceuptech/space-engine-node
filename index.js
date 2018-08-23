@@ -7,12 +7,12 @@ var NATS = require('nats');
  * const engine = new Engine('my-engine');
  * 
  * // Register function with engine
- * engine.registerFunc('my-func', (params, cb) => {
- * console.log('Params:', params)
+ * engine.registerFunc('my-func', (params, auth, cb) => {
+ * console.log('Params:', params, 'Auth', auth)
  * // Do something
  * 
- * const response = { ack: true, message: 'Function as a Service is Awesome!' }
- * cb(response)
+ * const res = { ack: true, message: 'Function as a Service is Awesome!' }
+ * cb('response', res)
  * })
  * 
  */
@@ -24,7 +24,7 @@ class Engine {
    */
   constructor(engineName, opts) {
     this.engine = engineName
-    this.callbacks = {}
+    this.registrations = {}
     if (opts) {
       this.nats = NATS.connect(opts)
     } else {
@@ -36,7 +36,8 @@ class Engine {
    * Callback to be called before returning from function.
    *  @name Callback
    *  @function
-   *  @param {Object} res Response to be given back to the client.
+   *  @param {string} type Type of callback action to be performed.
+   *  @param {Object} res Data to be sent to client.
    */
 
   /** 
@@ -44,31 +45,32 @@ class Engine {
    *  @name EngineFunction
    *  @function
    *  @param {Object} params Params received by function.
-   *  @param {Callback} cb The callback function.
+   *  @param {Object} auth Auth object of client. Will be undefined if request is unauthenticated.
+   *  @param {Callback} cb The callback function to be called by the function.
    */
 
   /**
    * Register the function to FaaS Engine
    * @param {string} name - Name of the function.
    * @param {EngineFunction} func - Function to be registered
-   * @param {boolean} [authenticate = false] - Check authentication. If true, the function will only be called when the request is authenticated
    */
-  registerFunc(name, func, authenticate) {
+  registerFunc(name, func) {
+    // name of the subject
     const subject = `faas:${this.engine}:${name}`
-    if (this.callbacks[subject]) {
-      return
-    }
-    this.callbacks[subject] = func
-    this.nats.subscribe(subject, (req, replyTo) => {
+
+    // Subscribe to nats subject
+    this.nats.subscribe(subject, { 'queue': this.engine }, (req, replyTo) => {
+      // Parse the request
       req = JSON.parse(req)
-      if (!authenticate || (authenticate && req.token)) {
-        this.callbacks[subject](req.params, (res) => {
-          if (res === undefined) res = {}
-          this.nats.publish(replyTo, JSON.stringify(res))
-        })
-        return
-      }
-      this.nats.publish(replyTo, JSON.stringify({ ack: false, err: 'Unauthenticated' }))
+
+      func(req.params, req.auth, (type, res) => {
+        switch (type) {
+          case 'response':
+            // Give the response back via nats publish
+            this.nats.publish(replyTo, JSON.stringify(res))
+            break
+        }
+      })
     })
   }
 }
