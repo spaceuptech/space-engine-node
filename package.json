@@ -1,6 +1,6 @@
 {
   "name": "space-engine-node",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Function as a Service engine API for Space Cloud in node",
   "main": "index.js",
   "scripts": {

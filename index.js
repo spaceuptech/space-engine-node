@@ -24,7 +24,6 @@ class Engine {
    */
   constructor(engineName, opts) {
     this.engine = engineName
-    this.registrations = {}
     if (opts) {
       this.nats = NATS.connect(opts)
     } else {
