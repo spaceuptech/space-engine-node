@@ -1,4 +1,4 @@
-# Client API for Space Cloud
+# API for Space Cloud FaaS Engines
 
 ## Installation
 
